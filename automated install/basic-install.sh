@@ -418,7 +418,7 @@ update_repo() {
 }
 
 # A function that combines the functions previously made
-getGitFiles() {
+get_git_files() {
     # Setup named variables for the git repos
     # We need the directory
     local directory="${1}"
@@ -446,7 +446,7 @@ getGitFiles() {
 }
 
 # Reset a repo to get rid of any local changed
-resetRepo() {
+reset_repo() {
     # Use named variables for arguments
     local directory="${1}"
     # Move into the directory
@@ -487,7 +487,7 @@ get_available_interfaces() {
 }
 
 # A function for displaying the dialogs the user sees when first running the installer
-welcomeDialogs() {
+welcome_dialogs() {
     # Display the welcome dialog using an appropriately sized window via the calculation conducted earlier in the script
     whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "\\n\\nThis installer will transform your device into a network-wide ad blocker!" ${r} ${c}
 
@@ -501,7 +501,7 @@ In the next section, you can choose to use your current network settings (DHCP) 
 }
 
 # We need to make sure there is enough space before installing, so there is a function to check this
-verifyFreeDiskSpace() {
+verify_free_diskspace() {
     # 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
     # - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
     local str="Disk space check"
@@ -548,7 +548,7 @@ verifyFreeDiskSpace() {
 }
 
 # A function that let's the user pick an interface to use with Pi-hole
-chooseInterface() {
+choose_interface() {
     # Turn the available interfaces into an array so it can be used with a whiptail dialog
     local interfacesArray=()
     # Number of available interfaces
@@ -602,7 +602,7 @@ chooseInterface() {
 # This lets us prefer ULA addresses over GUA
 # This caused problems for some users when their ISP changed their IPv6 addresses
 # See https://github.com/pi-hole/pi-hole/issues/1473#issuecomment-301745953
-testIPv6() {
+test_ipv6() {
     # first will contain fda2 (ULA)
     first="$(cut -f1 -d":" <<< "$1")"
     # value1 will contain 253 which is the decimal value corresponding to 0xfd
@@ -624,14 +624,14 @@ testIPv6() {
 }
 
 # A dialog for showing the user about IPv6 blocking
-useIPv6dialog() {
+use_ipv6_dialog() {
     # Determine the IPv6 address used for blocking
     IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
 
     # For each address in the array above, determine the type of IPv6 address it is
     for i in "${IPV6_ADDRESSES[@]}"; do
         # Check if it's ULA, GUA, or LL by using the function created earlier
-        result=$(testIPv6 "$i")
+        result=$(test_ipv6 "$i")
         # If it's a ULA address, use it and store it as a global variable
         [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
         # If it's a GUA address, we can still use it si store it as a global variable
@@ -668,7 +668,7 @@ useIPv6dialog() {
 }
 
 # A function to check if we should use IPv4 and/or IPv6 for blocking ads
-use4andor6() {
+use_4_andor_6() {
     # Named local variables
     local useIPv4
     local useIPv6
@@ -694,13 +694,13 @@ use4andor6() {
     if [[ "${useIPv4}" ]]; then
         # Run our function to get the information we need
         find_IPv4_information
-        getStaticIPv4Settings
-        setStaticIPv4
+        get_static_ipv4_settings
+        set_static_ipv4
     fi
     # If IPv6 is to be used,
     if [[ "${useIPv6}" ]]; then
         # Run our function to get this information
-        useIPv6dialog
+        use_ipv6_dialog
     fi
     # Echo the information to the user
     print_info "IPv4 address: ${IPV4_ADDRESS}"
@@ -715,7 +715,7 @@ use4andor6() {
 }
 
 #
-getStaticIPv4Settings() {
+get_static_ipv4_settings() {
     # Local, named variables
     local ipSettingsCorrect
     # Ask if the user wants to use DHCP settings as their static IP
@@ -762,7 +762,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 }
 
 # dhcpcd is very annoying,
-setDHCPCD() {
+set_dhcpcd() {
     # but we can append these lines to dhcpcd.conf to enable a static IP
     echo "interface ${PIHOLE_INTERFACE}
     static ip_address=${IPV4_ADDRESS}
@@ -770,7 +770,7 @@ setDHCPCD() {
     static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
 }
 
-setStaticIPv4() {
+set_static_ipv4() {
     # Local, named variables
     local IFCFG_FILE
     local IPADDR
@@ -783,7 +783,7 @@ setStaticIPv4() {
         # If it's not,
         else
             # set it using our function
-            setDHCPCD
+            set_dhcpcd
             # Then use the ip command to immediately set the new address
             ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
             # Also give a warning that the user may need to reboot their system
@@ -863,7 +863,7 @@ valid_ip() {
 }
 
 # A function to choose the upstream DNS provider(s)
-setDNS() {
+set_dns() {
     # Local, named variables
     local DNSSettingsCorrect
 
@@ -1003,7 +1003,7 @@ setDNS() {
 }
 
 # Allow the user to enable/disable logging
-setLogging() {
+set_logging() {
     # Local, named variables
     local LogToggleCommand
     local LogChooseOptions
@@ -1033,7 +1033,7 @@ setLogging() {
 }
 
 # Function to ask the user if they want to install the dashboard
-setAdminFlag() {
+set_admin_flag() {
     # Local, named variables
     local WebToggleCommand
     local WebChooseOptions
@@ -1083,7 +1083,7 @@ setAdminFlag() {
 }
 
 # A function to display a list of example blocklists for users to select
-chooseBlocklists() {
+choose_blocklists() {
     # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
     if [[ -f "${adlistFile}" ]]; then
         mv "${adlistFile}" "${adlistFile}.old"
@@ -1212,7 +1212,7 @@ clean_existing() {
 }
 
 # Install the scripts from repository to their various locations
-installScripts() {
+install_scripts() {
     # Local, named variables
     local str="Installing scripts from ${PI_HOLE_LOCAL_REPO}"
     print_info "${str}..."
@@ -1247,7 +1247,7 @@ installScripts() {
 }
 
 # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
-installConfigs() {
+install_configs() {
     print_info "Installing configs from ${PI_HOLE_LOCAL_REPO}..."
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
@@ -1542,7 +1542,7 @@ install_dependent_packages() {
 }
 
 # Install the Web interface dashboard
-installPiholeWeb() {
+install_pihole_web() {
     print_info "Installing blocking page..."
 
     local str="Creating directory for blocking page, and copying files"
@@ -1594,7 +1594,7 @@ installPiholeWeb() {
 }
 
 # Installs a cron file
-installCron() {
+install_cron() {
     # Install the cron job
     local str="Installing latest Cron script"
     print_info "${str}..."
@@ -1609,7 +1609,7 @@ installCron() {
 
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
 # which is what Pi-hole needs to begin blocking ads
-runGravity() {
+run_gravity() {
     # Run gravity in the current shell
     { /opt/pihole/gravity.sh --force; }
 }
@@ -1634,7 +1634,7 @@ create_pihole_user() {
 }
 
 # Allow HTTP and DNS traffic
-configureFirewall() {
+configure_firewall() {
     # If a firewall is running,
     if firewall-cmd --state &> /dev/null; then
         # ask if the user wants to install Pi-hole's default firewall rules
@@ -1672,7 +1672,7 @@ configureFirewall() {
 }
 
 #
-finalExports() {
+final_exports() {
     # If the Web interface is not set to be installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
         # and if there is not an IPv4 address,
@@ -1716,7 +1716,7 @@ finalExports() {
 }
 
 # Install the logrotate script
-installLogrotate() {
+install_logrotate() {
     local str="Installing latest logrotate script"
     print_info "${str}..."
     # Copy the file over from the local repo
@@ -1738,7 +1738,7 @@ installLogrotate() {
 
 # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
 # Refactoring of install script has changed the name of a couple of variables. Sort them out here.
-accountForRefactor() {
+account_for_refactor() {
     sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' ${setupVars}
     sed -i 's/IPv4_address/IPV4_ADDRESS/g' ${setupVars}
     sed -i 's/IPv4addr/IPV4_ADDRESS/g' ${setupVars}
@@ -1758,7 +1758,7 @@ accountForRefactor() {
 }
 
 # Install base files and web interface
-installPihole() {
+install_pihole() {
     # Create the pihole user
     create_pihole_user
 
@@ -1788,37 +1788,37 @@ installPihole() {
     fi
     # For updates and unattended install.
     if [[ "${useUpdateVars}" == true ]]; then
-        accountForRefactor
+        account_for_refactor
     fi
     # Install base files and web interface
-    installScripts
+    install_scripts
     # Install config files
-    installConfigs
+    install_configs
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # do so
-        installPiholeWeb
+        install_pihole_web
     fi
     # Install the cron file
-    installCron
+    install_cron
     # Install the logrotate file
-    installLogrotate
+    install_logrotate
     # Check if FTL is installed
-    FTLdetect || print_fail "FTL Engine not installed"
+    ftl_detect || print_fail "FTL Engine not installed"
     # Configure the firewall
     if [[ "${useUpdateVars}" == false ]]; then
-        configureFirewall
+        configure_firewall
     fi
 
     # install a man page entry for pihole
     install_manpage
 
     # Update setupvars.conf with any variables that may or may not have been changed during the install
-    finalExports
+    final_exports
 }
 
 # SELinux
-checkSelinux() {
+check_selinux() {
     # If the getenforce command exists,
     if command -v getenforce &> /dev/null; then
         # Store the current mode in a variable
@@ -1837,7 +1837,7 @@ checkSelinux() {
 }
 
 # Installation complete message with instructions for the user
-displayFinalMessage() {
+display_final_message() {
     # If
     if [[ "${#1}" -gt 0 ]] ; then
         pwstring="$1"
@@ -1993,14 +1993,14 @@ clone_or_update_repos() {
     if [[ "${reconfigure}" == true ]]; then
         print_info "Performing reconfiguration, skipping download of local repos"
         # Reset the Core repo
-        resetRepo ${PI_HOLE_LOCAL_REPO} || \
+        reset_repo ${PI_HOLE_LOCAL_REPO} || \
         { print_fail "${COL_LIGHT_RED}Unable to reset ${PI_HOLE_LOCAL_REPO}, exiting installer${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # reset it's repo
-            resetRepo ${webInterfaceDir} || \
+            reset_repo ${webInterfaceDir} || \
             { print_fail "${COL_LIGHT_RED}Unable to reset ${webInterfaceDir}, exiting installer${COL_NC}"; \
             exit 1; \
             }
@@ -2008,14 +2008,14 @@ clone_or_update_repos() {
     # Otherwise, a repair is happening
     else
         # so get git files for Core
-        getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+        get_git_files ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
         { print_fail "${COL_LIGHT_RED}Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # get the Web git files
-            getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+            get_git_files ${webInterfaceDir} ${webInterfaceGitUrl} || \
             { print_fail "${COL_LIGHT_RED}Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, exiting installer${COL_NC}"; \
             exit 1; \
             }
@@ -2024,7 +2024,7 @@ clone_or_update_repos() {
 }
 
 # Download FTL binary to random temp directory and install FTL binary
-FTLinstall() {
+ftl_install() {
     # Local, named variables
     local binary="${1}"
     local latesttag
@@ -2185,7 +2185,7 @@ get_binary_name() {
     fi
 }
 
-FTLcheckUpdate() {
+ftl_check_update() {
     get_binary_name
 
     #In the next section we check to see if FTL is already installed (in case of pihole -r).
@@ -2270,11 +2270,11 @@ FTLcheckUpdate() {
 }
 
 # Detect suitable FTL binary platform
-FTLdetect() {
+ftl_detect() {
     print_info "FTL Checks..."
 
-    if FTLcheckUpdate ; then
-        FTLinstall "${binary}" || return 1
+    if ftl_check_update ; then
+        ftl_install "${binary}" || return 1
     fi
 }
 
@@ -2357,7 +2357,7 @@ main() {
     if [[ "${skipSpaceCheck}" == true ]]; then
         print_info "Skipping free disk space verification"
     else
-        verifyFreeDiskSpace
+        verify_free_diskspace
     fi
 
     # Update package cache
@@ -2370,27 +2370,27 @@ main() {
     install_dependent_packages INSTALLER_DEPS[@]
 
     # Check if SELinux is Enforcing
-    checkSelinux
+    check_selinux
 
     if [[ "${useUpdateVars}" == false ]]; then
         # Display welcome dialogs
-        welcomeDialogs
+        welcome_dialogs
         # Create directory for Pi-hole storage
         mkdir -p /etc/pihole/
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one
-        chooseInterface
+        choose_interface
         # Decide what upstream DNS Servers to use
-        setDNS
+        set_dns
         # Give the user a choice of blocklists to include in their install. Or not.
-        chooseBlocklists
+        choose_blocklists
         # Let the user decide if they want to block ads over IPv4 and/or IPv6
-        use4andor6
+        use_4_andor_6
         # Let the user decide if they want the web interface to be installed automatically
-        setAdminFlag
+        set_admin_flag
         # Let the user decide if they want query logging enabled...
-        setLogging
+        set_logging
     else
         # Source ${setupVars} to use predefined user variables in the functions
         source ${setupVars}
@@ -2421,7 +2421,7 @@ main() {
     fi
 
     # Install and log everything to a file
-    installPihole | tee -a /proc/$$/fd/3
+    install_pihole | tee -a /proc/$$/fd/3
 
     # Copy the temp log file into final log location for storage
     copy_to_install_log
@@ -2464,7 +2464,7 @@ main() {
     enable_service pihole-FTL
 
     # Download and compile the aggregated block list
-    runGravity
+    run_gravity
 
     # Force an update of the updatechecker
     /opt/pihole/updatecheck.sh
@@ -2472,7 +2472,7 @@ main() {
 
     #
     if [[ "${useUpdateVars}" == false ]]; then
-        displayFinalMessage "${pw}"
+        display_final_message "${pw}"
     fi
 
     # If the Web interface was installed,
