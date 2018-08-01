@@ -13,15 +13,20 @@ PH_TEST="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # webInterfaceGitUrl set in basic-install.sh
+webInterfaceGitUrl="${webInterfaceGitUrl:-https://github.com/pi-hole/AdminLTE.git}"
 # webInterfaceDir set in basic-install.sh
-# piholeGitURL set in basic-install.sh
+webInterfaceDir="${webInterfaceDir:-/var/www/html/admin}"
+# piholeGitUrl set in basic-install.sh
+piholeGitUrl="${piholeGitUrl:-https://github.com/pi-hole/pi-hole.git}"
 # is_repo() sourced from basic-install.sh
 # setupVars set in basic-install.sh
+setupVars="${setupVars:-/etc/pihole/setupVars.conf}"
 # check_download_exists sourced from basic-install.sh
 # fully_fetch_repo sourced from basic-install.sh
 # get_available_branches sourced from basic-install.sh
 # fetch_checkout_pull_branch sourced from basic-install.sh
 # checkout_pull_branch sourced from basic-install.sh
+#get_binary_name sourced from basic-install.sh
 
 source "${setupVars}"
 
@@ -45,6 +50,9 @@ warning1() {
 checkout() {
     local corebranches
     local webbranches
+    local binary
+
+    binary="$(get_binary_name)"
 
     # Avoid globbing
     set -f
@@ -86,7 +94,6 @@ checkout() {
         fi
         #echo -e "  ${TICK} Pi-hole Core"
 
-        get_binary_name
         local path
         path="development/${binary}"
         echo "development" > /etc/pihole/ftlbranch
@@ -100,7 +107,6 @@ checkout() {
             fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
         fi
         #echo -e "  ${TICK} Web Interface"
-        get_binary_name
         local path
         path="master/${binary}"
         echo "master" > /etc/pihole/ftlbranch
@@ -111,7 +117,7 @@ checkout() {
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
+        mapfile -t corebranches < <(get_available_branches "${PI_HOLE_FILES_DIR}")
 
         if [[ "${corebranches[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
@@ -138,7 +144,7 @@ checkout() {
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        webbranches=($(get_available_branches "${webInterfaceDir}"))
+        mapfile -t webbranches < <(get_available_branches "${webInterfaceDir}")
 
         if [[ "${webbranches[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
@@ -159,7 +165,6 @@ checkout() {
         fi
         checkout_pull_branch "${webInterfaceDir}" "${2}"
     elif [[ "${1}" == "ftl" ]] ; then
-        get_binary_name
         local path
         path="${2}/${binary}"
 
@@ -171,7 +176,7 @@ checkout() {
             enable_service pihole-FTL
         else
             echo "  ${CROSS} Requested branch \"${2}\" is not available"
-            ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+            mapfile -t ftlbranches < <(git ls-remote --heads --quiet https://github.com/pi-hole/ftl | cut -d'/' -f3- -)
             echo -e "  ${INFO} Available branches for FTL are:"
             for e in "${ftlbranches[@]}"; do echo "      - $e"; done
             exit 1

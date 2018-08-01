@@ -2183,10 +2183,12 @@ get_binary_name() {
         fi
         binary="pihole-FTL-linux-x86_32"
     fi
+    echo "${binary}"
 }
 
 FTLcheckUpdate() {
-    get_binary_name
+    local binary
+    binary="$(get_binary_name)"
 
     #In the next section we check to see if FTL is already installed (in case of pihole -r).
     #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
@@ -2270,10 +2272,13 @@ FTLcheckUpdate() {
 
 # Detect suitable FTL binary platform
 FTLdetect() {
+    local binary
+    binary="$(get_binary_name)"
     echo ""
     echo -e "  ${INFO} FTL Checks..."
 
     if FTLcheckUpdate ; then
+
         FTLinstall "${binary}" || return 1
     fi
 

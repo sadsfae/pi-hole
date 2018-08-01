@@ -303,7 +303,7 @@ get_sys_stats() {
 
     # Determine whether to display CPU clock speed as MHz or GHz
     if [[ -n "$cpu_mhz" ]]; then
-        [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(printf "%.1f" $(calcFunc "$cpu_mhz"/1000)) GHz"
+        [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(printf "%.1f" "$(calcFunc "$cpu_mhz"/1000)") GHz"
         [[ "${cpu_freq}" == *".0"* ]] && cpu_freq="${cpu_freq/.0/}"
     fi
 
