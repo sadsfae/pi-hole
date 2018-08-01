@@ -13,6 +13,11 @@ tab_width = 4
 charset = utf-8
 trim_trailing_whitespace = true
 
+# PHP files 2 spaces
+[*.php]
+indent_style = space
+indent_size = 2
+
 # Matches multiple files with brace expansion notation
 # Set default charset
 [*.{js,py}]
