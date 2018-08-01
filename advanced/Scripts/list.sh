@@ -63,7 +63,7 @@ EscapeRegexp() {
     # string in our regular expressions
     # This sed is intentionally executed in three steps to ease maintainability
     # The first sed removes any amount of leading dots
-    echo $* | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
+    echo "$@" | sed 's/^\.*//' | sed "s/[]\\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\\//g"
 }
 
 HandleOther() {
@@ -81,7 +81,7 @@ HandleOther() {
     fi
 
     if [[ -n "${validDomain}" ]]; then
-        domList=("${domList[@]}" ${validDomain})
+        domList=("${domList[@]}" "${validDomain}")
     else
         echo -e "  ${CROSS} ${domain} is not a valid argument or domain name!"
     fi
@@ -223,7 +223,7 @@ Displaylist() {
             string="domains caught in the sinkhole"
         fi
         verbose=false
-        echo -e "Displaying $string:\n"
+        echo -e "Displaying $string:\\n"
         count=1
         while IFS= read -r RD || [ -n "${RD}" ]; do
             echo "  ${count}: ${RD}"
