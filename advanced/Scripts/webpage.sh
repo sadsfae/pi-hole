@@ -85,9 +85,9 @@ SetTemperatureUnit() {
 
 HashPassword() {
     # Compute password hash twice to avoid rainbow table vulnerability
-    return=$(echo -n ${1} | sha256sum | sed 's/\s.*$//')
-    return=$(echo -n ${return} | sha256sum | sed 's/\s.*$//')
-    echo ${return}
+    return=$(echo -n "${1}" | sha256sum | sed 's/\s.*$//')
+    return=$(echo -n "${return}" | sha256sum | sed 's/\s.*$//')
+    echo "${return}"
 }
 
 SetWebPassword() {
@@ -110,7 +110,7 @@ SetWebPassword() {
         # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
         # So we reset the terminal via stty if the user does press Ctrl+C
         trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
-        read -s -p "Enter New Password (Blank for no password): " PASSWORD
+        read -s -p -r "Enter New Password (Blank for no password): " PASSWORD
         echo ""
 
     if [ "${PASSWORD}" == "" ]; then
@@ -140,13 +140,13 @@ ProcessDNSSettings() {
     delete_dnsmasq_setting "server"
 
     COUNTER=1
-    while [[ 1 ]]; do
+    while true; do
         var=PIHOLE_DNS_${COUNTER}
         if [ -z "${!var}" ]; then
             break;
         fi
         add_dnsmasq_setting "server" "${!var}"
-        let COUNTER=COUNTER+1
+        (( COUNTER=COUNTER+1 ))
     done
 
     # The option LOCAL_DNS_PORT is deprecated
@@ -521,7 +521,8 @@ Interfaces:
 }
 
 Teleporter() {
-    local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+    local datetimestamp
+    datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
