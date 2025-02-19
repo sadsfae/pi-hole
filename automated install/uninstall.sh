@@ -14,8 +14,8 @@ while true; do
     read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " yn
     case ${yn} in
         [Yy]* ) break;;
-        [Nn]* ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
-        * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
+        [Nn]* ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
+        * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
     esac
 done
 
@@ -31,7 +31,7 @@ else
     else
         echo -e "  ${CROSS} ${str}
             Script called with non-root privileges
-            The Pi-hole requires elevated privleges to uninstall"
+            The Pi-hole requires elevated privileges to uninstall"
         exit 1
     fi
 fi
@@ -42,8 +42,8 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # setupVars set in basic-install.sh
 source "${setupVars}"
 
-# distro_check() sourced from basic-install.sh
-distro_check
+# package_manager_detect() sourced from basic-install.sh
+package_manager_detect
 
 # Install packages used by the Pi-hole
 DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
@@ -52,16 +52,16 @@ if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     DEPS+=("${PIHOLE_WEB_DEPS[@]}")
 fi
 
-# Compatability
+# Compatibility
 if [ -x "$(command -v apt-get)" ]; then
     # Debian Family
-    PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
+    PKG_REMOVE=("${PKG_MANAGER}" -y remove --purge)
     package_check() {
         dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
     }
 elif [ -x "$(command -v rpm)" ]; then
     # Fedora Family
-    PKG_REMOVE="${PKG_MANAGER} remove -y"
+    PKG_REMOVE=("${PKG_MANAGER}" remove -y)
     package_check() {
         rpm -qa | grep "^$1-" > /dev/null
     }
@@ -80,7 +80,7 @@ removeAndPurge() {
                 case ${yn} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} "${PKG_REMOVE} ${i}" &> /dev/null;
+                        ${SUDO} "${PKG_REMOVE[@]}" "${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
@@ -113,7 +113,7 @@ removeNoPurge() {
         fi
     fi
     echo -e "${OVER}  ${TICK} Removed Web Interface"
- 
+
     # Attempt to preserve backwards compatibility with older versions
     # to guarantee no additional changes were made to /etc/crontab after
     # the installation of pihole, /etc/crontab.pihole should be permanently
@@ -131,18 +131,21 @@ removeNoPurge() {
         echo -e "  ${TICK} Removed /etc/cron.d/pihole"
     fi
 
-    package_check lighttpd > /dev/null
-    if [[ $? -eq 1 ]]; then
-        ${SUDO} rm -rf /etc/lighttpd/ &> /dev/null
-        echo -e "  ${TICK} Removed lighttpd"
-    else
-        if [ -f /etc/lighttpd/lighttpd.conf.orig ]; then
+    if package_check lighttpd > /dev/null; then
+        if [[ -f /etc/lighttpd/lighttpd.conf.orig ]]; then
             ${SUDO} mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
         fi
+
+        if [[ -f /etc/lighttpd/external.conf ]]; then
+            ${SUDO} rm /etc/lighttpd/external.conf
+        fi
+
+        echo -e "  ${TICK} Removed lighttpd configs"
     fi
 
     ${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
     ${SUDO} rm -f /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+    ${SUDO} rm -f /etc/dnsmasq.d/06-rfc6761.conf &> /dev/null
     ${SUDO} rm -rf /var/log/*pihole* &> /dev/null
     ${SUDO} rm -rf /etc/pihole/ &> /dev/null
     ${SUDO} rm -rf /etc/.pihole/ &> /dev/null
@@ -154,7 +157,7 @@ removeNoPurge() {
 
     # Restore Resolved
     if [[ -e /etc/systemd/resolved.conf.orig ]]; then
-        ${SUDO} cp /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
+        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
         systemctl reload-or-restart systemd-resolved
     fi
 
@@ -186,9 +189,17 @@ removeNoPurge() {
             echo -e "  ${CROSS} Unable to remove 'pihole' user"
         fi
     fi
+    # If the pihole group exists, then remove
+    if getent group "pihole" &> /dev/null; then
+        if ${SUDO} groupdel pihole 2> /dev/null; then
+            echo -e "  ${TICK} Removed 'pihole' group"
+        else
+            echo -e "  ${CROSS} Unable to remove 'pihole' group"
+        fi
+    fi
 
     echo -e "\\n   We're sorry to see you go, but thanks for checking out Pi-hole!
-       If you need help, reach out to us on Github, Discourse, Reddit or Twitter
+       If you need help, reach out to us on GitHub, Discourse, Reddit or Twitter
        Reinstall at any time: ${COL_WHITE}curl -sSL https://install.pi-hole.net | bash${COL_NC}
 
       ${COL_LIGHT_RED}Please reset the DNS on your router/clients to restore internet connectivity
@@ -196,11 +207,7 @@ removeNoPurge() {
 }
 
 ######### SCRIPT ###########
-if command -v vcgencmd &> /dev/null; then
-    echo -e "  ${INFO} All dependencies are safe to remove on Raspbian"
-else
-    echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
-fi
+echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
 while true; do
     echo -e "  ${INFO} ${COL_YELLOW}The following dependencies may have been added by the Pi-hole install:"
     echo -n "    "
